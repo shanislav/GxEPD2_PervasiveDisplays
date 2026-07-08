@@ -131,7 +131,7 @@ void setup() {
 void loop() {}
 ```
 
-A full refresh takes ~35 s (E2266JS0C ~20 s). See `examples/` for both panels.
+A full refresh takes ~20 s. See `examples/` for both panels.
 
 ---
 
