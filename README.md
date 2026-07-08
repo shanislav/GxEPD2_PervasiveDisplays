@@ -8,10 +8,11 @@ This is a **companion library**: you install it *alongside* GxEPD2, you don't re
 The driver classes derive from `GxEPD2_EPD` and are used with the standard `GxEPD2_3C` template,
 so all of GxEPD2 / Adafruit_GFX drawing works exactly as usual.
 
-> These are the first known GxEPD2 drivers for Pervasive Displays / VUSION panels. The 5.81"
-> VUSION panel in particular was fully reverse-engineered (no public datasheet or driver exists).
+> These are the first known GxEPD2 drivers for Pervasive Displays / VUSION panels — including the
+> 9.7" dual-COG panel and the 5.81" OEM variant that was fully reverse-engineered (no public
+> datasheet or driver exists).
 
-![VUSION 5.9 panel driven by an ESP32-C3 running this library](docs/demo.jpg)
+![VUSION 9.7" dual-COG panel driven by this library](docs/demo_970.jpg)
 
 ---
 
@@ -29,7 +30,7 @@ reverse-engineered (see notes below).
 
 All are **3-colour** (black / white / red). Full refresh only (no partial update).
 
-![VUSION 9.7" dual-COG panel driven by this library](docs/demo_970.jpg)
+![VUSION 5.9" panel driven by an ESP32-C3 running this library](docs/demo.jpg)
 
 ---
 
@@ -67,6 +68,10 @@ lib_deps =
 
 The panels need **3.3 V** on both supply *and* data lines. A boost/level circuit is usually
 already on the ESL's flex-to-breakout adapter.
+
+> The **VUSION 9.7" (dual-COG)** panel has a different pinout — **two** chip-selects
+> (`M-CS`=GPIO10, `S-CS`=GPIO0) — and its own solder map. See
+> [its section below](#te2969js0b4-vusion-97--dual-cog).
 
 ### Where to solder on the VUSION 5.9 board
 
@@ -134,7 +139,7 @@ void setup() {
 void loop() {}
 ```
 
-A full refresh takes ~20 s. See `examples/` for both panels.
+A full refresh takes ~20 s (the 9.7" ~40 s). See `examples/` for each panel.
 
 ---
 
@@ -161,6 +166,11 @@ This is an **OEM panel with no public datasheet**. It shares the size of the pub
 **Origin:** SES-imagotag / VUSION 5.9 BWR GU110 (model EDG3-0590-A) recycled shelf label. The tag's
 original MCU is a Silicon Labs EFR32FG22 (secure-locked), so the panel's original waveform/params
 were not recoverable — everything here was found empirically on hardware.
+
+**Memory & WiFi:** the 720×512 3C buffer is ~92 KB, so on an ESP32-C3 with WiFi/WebServer you can
+run out of RAM — use paged rendering (pass a smaller page height as the `GxEPD2_3C` template's 2nd
+argument). And since the panel addresses 720×512 but only shows the top 256 rows, if you feed it
+images from a server, generate them at **720×256** and draw into the top of the buffer.
 
 ### TE2969JS0B4 (VUSION 9.7") — dual-COG
 
@@ -192,17 +202,13 @@ Soldered up: [wiring](docs/wiring_soldered_vusion97.jpg) · board [1](docs/board
 
 **Origin:** SES-imagotag / VUSION 9.7 BWR GU111 (model EDG4-0970-A) recycled shelf label.
 
-### Memory (ESP32-C3)
-The 720×512 3C buffer is ~92 KB. If you also run WiFi/WebServer you can run out of RAM. Use paged
-rendering — with GxEPD2 pass a smaller page height as the template's second argument so the library
-draws in horizontal bands.
-
 ### Low power (battery)
-These panels are **bistable** — they hold the image with **zero current**. But the driver
-deliberately skips the COG's soft power-off (`0x02`, which makes the image fade on this panel), so
-the COG's DC/DC stays on and keeps drawing current. For battery use, **cut the whole panel supply**.
-On the VUSION tag board the power MOSFET is already there — just drive its `ON/OFF` line from a GPIO.
-On a bare panel breakout, add your own high-side MOSFET / load switch. Either way:
+These panels are **bistable** — once drawn they hold the image with **zero current**. The reliable
+way to get there on battery is to **cut the whole panel supply** after each refresh, because the
+COG's DC/DC otherwise keeps drawing current (and on the 5.81" the driver can't even use the soft
+power-off `0x02` — it fades the fresh image). On the VUSION tag board the power MOSFET is already
+there — just drive its `ON/OFF` line from a GPIO. On a bare panel breakout, add your own high-side
+MOSFET / load switch. Either way:
 
 ```
 power ON  ->  init + draw + refresh  ->  power OFF  ->  deep sleep
@@ -213,10 +219,6 @@ Cut power **after** the refresh finishes — the pigment is already set, so the 
 `HelloWorld_2581JSBF1` example does exactly this (power-gate + deep sleep). Gotcha: park the
 SPI/DC/RST lines LOW before cutting power, so they don't back-power the unpowered panel through
 its ESD diodes.
-
-### Driving images from a server (e.g. cropping to 256 px)
-Because the panel reports/addresses 720×512 but only shows the top 256 rows, generate/serve your
-image at **720×256** and draw it into the top of the buffer.
 
 ---
 
