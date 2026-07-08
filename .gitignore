@@ -13,3 +13,6 @@ build/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# stray phone photos dropped in the repo root
+/PXL_*.jpg

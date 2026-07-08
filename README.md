@@ -21,12 +21,15 @@ so all of GxEPD2 / Adafruit_GFX drawing works exactly as usual.
 |-------|-------|------|-----|--------|-------|
 | `GxEPD2_266c_E2266JS0C` | Pervasive Displays **E2266JS0C** (`SE2266JS0C5`) — found in **SES-imagotag / VUSION 2.6 BWR GU110**, model EDG3-0260-A | 2.66" | 296×152 | BWR | standard iTC "small" COG |
 | `GxEPD2_581c_2581JSBF1` | **SES-imagotag / VUSION 5.9 BWR GU110** (`2581JSBF1`, model EDG3-0590-A) | 5.81" | 720×256 | BWR | GD7965/UC8179, reverse-engineered |
+| `GxEPD2_970c_TE2969JS0B4` | **SES-imagotag / VUSION 9.7 BWR GU111** (`TE2969JS0B4`, model EDG4-0970-A) | 9.7" | 960×672 | BWR | genuine Pervasive iTC "0B", **dual-COG** (master + slave) |
 
-Both panels come from recycled **VUSION electronic shelf labels**. The 2.66" is a standard catalogued
-Pervasive part (works with the normal iTC protocol); the 5.81" is an OEM variant that had to be
+All three panels come from recycled **VUSION electronic shelf labels**. The 2.66" and 9.7" are genuine
+Pervasive iTC controllers (the stock protocol works); the 5.81" is an OEM variant that had to be
 reverse-engineered (see notes below).
 
-Both are **3-colour** (black / white / red). Full refresh only (no partial update).
+All are **3-colour** (black / white / red). Full refresh only (no partial update).
+
+![VUSION 9.7" dual-COG panel driven by this library](docs/demo_970.jpg)
 
 ---
 
@@ -158,6 +161,36 @@ This is an **OEM panel with no public datasheet**. It shares the size of the pub
 **Origin:** SES-imagotag / VUSION 5.9 BWR GU110 (model EDG3-0590-A) recycled shelf label. The tag's
 original MCU is a Silicon Labs EFR32FG22 (secure-locked), so the panel's original waveform/params
 were not recoverable — everything here was found empirically on hardware.
+
+### TE2969JS0B4 (VUSION 9.7") — dual-COG
+
+A big one: 960×672, and **two controllers** (master + slave), each driving half the glass (the 960
+axis is split at 480). They share DC / RST / SDA / SCL and are selected by separate CS lines
+(`M-CS`, `S-CS`); the two FPCs are also joined by cascade lines (FSYNC/LNSYNC/CLK) that sync the
+halves in hardware. This is a **genuine Pervasive iTC "0B" controller** — it answers the OTP read, so
+the stock protocol works (unlike the 5.81"). The driver is a port of the PDLS `COG_LargeCJ` path:
+
+- **Reads the panel OTP** (128 bytes via command `0xB9`, 3-wire SPI, master only) for the per-panel
+  init parameters (DCTL, VCOM, TCON, STV_DIR, MS_SYNC/BVSS, DUW/DRFW addressing, DC/DC soft-start
+  tables). Nothing is hardcoded.
+- **Splits the frame** — first half of each plane goes to the master COG, second half to the slave.
+- **Memory:** the two 80 KB planes are `malloc`'d on the heap (not static), and the example uses a
+  `HEIGHT/4` GFX page buffer, so it fits an ESP32-C3 (no WiFi). An ESP32-S3 is comfier.
+
+> ⚠️ **Not a beginner solder job.** On this board `SCLK` has **no test point** — you have to scrape
+> the solder mask off a trace and tack a wire onto it (see the annotated photo below). The rest have
+> pads. If you just want it lit up quickly, the **stock Pervasive PDLS** library also drives it out
+> of the box — see [PDLS_EXT3_Basic_Global](https://github.com/PervasiveDisplays/PDLS_EXT3_Basic_Global),
+> screen `eScreen_EPD_969_JS_0B`.
+
+**Where to solder (VUSION 9.7):**
+
+![VUSION 9.7 test points](docs/wiring_testpoints_vusion97.jpg)
+
+Soldered up: [wiring](docs/wiring_soldered_vusion97.jpg) · board [1](docs/board_vusion97.jpg) ·
+[2](docs/board_vusion97_2.jpg).
+
+**Origin:** SES-imagotag / VUSION 9.7 BWR GU111 (model EDG4-0970-A) recycled shelf label.
 
 ### Memory (ESP32-C3)
 The 720×512 3C buffer is ~92 KB. If you also run WiFi/WebServer you can run out of RAM. Use paged
