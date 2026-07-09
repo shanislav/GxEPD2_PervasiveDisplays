@@ -20,13 +20,13 @@ so all of GxEPD2 / Adafruit_GFX drawing works exactly as usual.
 
 | Class | Panel | Size | Res | Colour | Notes |
 |-------|-------|------|-----|--------|-------|
-| `GxEPD2_266c_E2266JS0C` | Pervasive Displays **E2266JS0C** (`SE2266JS0C5`) — found in **SES-imagotag / VUSION 2.6 BWR GU110**, model EDG3-0260-A | 2.66" | 296×152 | BWR | standard iTC "small" COG |
-| `GxEPD2_581c_2581JSBF1` | **SES-imagotag / VUSION 5.9 BWR GU110** (`2581JSBF1`, model EDG3-0590-A) | 5.81" | 720×256 | BWR | GD7965/UC8179, reverse-engineered |
-| `GxEPD2_970c_TE2969JS0B4` | **SES-imagotag / VUSION 9.7 BWR GU111** (`TE2969JS0B4`, model EDG4-0970-A) | 9.7" | 960×672 | BWR | genuine Pervasive iTC "0B", **dual-COG** (master + slave) |
+| `GxEPD2_266c_E2266JS0C` | **E2266JS0C** — VUSION 2.6 BWR GU110 (EDG3-0260-A) | 2.66" | 296×152 | BWR | genuine Pervasive iTC, "small" COG |
+| `GxEPD2_581c_2581JSBF1` | **2581JSBF1** — VUSION 5.9 BWR GU110 (EDG3-0590-A) | 5.81" | 720×256 | BWR | non-iTC, UC8179-family protocol, reverse-engineered |
+| `GxEPD2_970c_TE2969JS0B4` | **TE2969JS0B4** — VUSION 9.7 BWR GU111 (EDG4-0970-A) | 9.7" | 960×672 | BWR | genuine Pervasive iTC "0B", dual-COG (master + slave) |
 
-All three panels come from recycled **VUSION electronic shelf labels**. The 2.66" and 9.7" are genuine
-Pervasive iTC controllers (the stock protocol works); the 5.81" is an OEM variant that had to be
-reverse-engineered (see notes below).
+All three panels come from recycled **VUSION** (formerly **SES-imagotag**) electronic shelf labels.
+The 2.66" and 9.7" are genuine Pervasive iTC controllers (the stock protocol works); the 5.81" is an
+OEM variant with a non-iTC controller that had to be reverse-engineered (see notes below).
 
 All are **3-colour** (black / white / red). Full refresh only (no partial update).
 
@@ -151,8 +151,10 @@ A full refresh takes ~20 s (the 9.7" ~40 s). See `examples/` for each panel.
 
 ### 2581JSBF1 (VUSION 5.9") — reverse-engineered
 This is an **OEM panel with no public datasheet**. It shares the size of the public Pervasive
-`E2581JS0B` but uses a **different controller (GD7965 / UC8179)**, so Pervasive's own driver does
-**not** work on it. Key findings (also documented in the driver header):
+`E2581JS0B` but uses a **different, non-iTC controller** — it doesn't answer the Pervasive OTP read
+(`0xB9`), but responds to the **UC8179-family command set**, so Pervasive's own driver does **not**
+work on it. The exact silicon is unknown (the COG is epoxy-blobbed); the controller was identified by
+its command protocol, not by reading the chip. Key findings (also documented in the driver header):
 
 - **Addressed as 720×512, not 720×256.** The controller RAM spans 720×512 but only the **top 256
   rows** are wired to the glass. `HEIGHT` is therefore **512**; each plane is 46080 bytes. Sending
