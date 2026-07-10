@@ -54,6 +54,11 @@ lib_deps =
 
 ## Wiring (example: ESP32-C3 Super Mini)
 
+> **Remove the original MCU first.** On every one of these VUSION boards you must **desolder the
+> tag's original controller** (its secure-locked ESL MCU) before wiring in the ESP32 — the ESP
+> *replaces* it and drives the panel directly. Leaving the old chip on the bus will fight the ESP
+> for the SPI/CS lines. The test points below are the panel signals that were routed to that MCU.
+
 | Panel pin | ESP32-C3 GPIO |
 |-----------|---------------|
 | CS   | 10 |
@@ -72,6 +77,18 @@ already on the ESL's flex-to-breakout adapter.
 > The **VUSION 9.7" (dual-COG)** panel has a different pinout — **two** chip-selects
 > (`M-CS`=GPIO10, `S-CS`=GPIO0) — and its own solder map. See
 > [its section below](#te2969js0b4-vusion-97--dual-cog).
+
+### Where to solder on the VUSION 2.6 board
+
+The **VUSION 2.6 (E2266JS0C)** label uses the pinout in the table above. Desolder its MCU, then wire
+these test points. Like its bigger brothers this board **has its own power MOSFET** — the `ON/OFF`
+point is its enable line, straight to a GPIO (we use GPIO4), **LOW = panel on**. `VCC 3.3V` and `GND`
+feed the ESP.
+
+![VUSION 2.6 test points](docs/wiring_testpoints_vusion26.jpg)
+
+Board for reference — [front (MCU side)](docs/board_vusion26_front.jpg) ·
+[back (bare)](docs/board_vusion26.jpg).
 
 ### Where to solder on the VUSION 5.9 board
 

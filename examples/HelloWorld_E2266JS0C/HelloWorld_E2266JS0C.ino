@@ -3,6 +3,11 @@
 // Board: ESP32-C3 Super Mini (same wiring as the 5.81 example).
 // Wiring: CS=GPIO10, DC=GPIO5, RST=GPIO3, BUSY=GPIO1, SCLK=GPIO6, MOSI=GPIO7 (MISO unused),
 //         ON/OFF (panel power) = GPIO4.  Keep panel signals OFF the strapping pins GPIO9/GPIO2 - see README.
+//
+// EPD_PWR (GPIO4) drives the VUSION tag board's ON-BOARD power MOSFET (via its ON/OFF test point) -
+// no external MOSFET needed. On a bare panel breakout with no switch, leave EPD_PWR unconnected (the
+// writes below are then harmless). The panel is bistable: once refreshed, the image holds with the
+// supply cut, so the tag draws ~zero current between updates.
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -16,7 +21,11 @@
 #define EPD_SCLK 6
 #define EPD_MISO -1 // unused (panel is write-only)
 #define EPD_MOSI 7
-#define EPD_PWR  4  // panel power (LOW = ON); harmless if your board has no power switch
+#define EPD_PWR  4  // ON/OFF -> tag board's on-board power MOSFET
+
+// The VUSION board's MOSFET is active-low: LOW = panel powered.
+#define PWR_ON   LOW
+#define PWR_OFF  HIGH
 
 GxEPD2_3C<GxEPD2_266c_E2266JS0C, GxEPD2_266c_E2266JS0C::HEIGHT> display(
   GxEPD2_266c_E2266JS0C(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
@@ -29,7 +38,7 @@ void setup()
 
   // power the panel on before we talk to it (150 ms for the boost to settle)
   pinMode(EPD_PWR, OUTPUT);
-  digitalWrite(EPD_PWR, LOW);
+  digitalWrite(EPD_PWR, PWR_ON);
   delay(150);
 
   SPI.begin(EPD_SCLK, EPD_MISO, EPD_MOSI, EPD_CS);
@@ -53,8 +62,19 @@ void setup()
     display.fillCircle(250, 110, 15, GxEPD_RED);
   } while (display.nextPage());
 
-  Serial.println("=== Done ===");
+  Serial.println("Refresh done - powering panel off (image holds).");
   display.powerOff();
+
+  // Park the SPI / control lines LOW so they can't back-power the unpowered panel through its ESD
+  // diodes, then cut the panel supply. The image stays on screen at zero current.
+  digitalWrite(EPD_CS, LOW);
+  digitalWrite(EPD_DC, LOW);
+  digitalWrite(EPD_RST, LOW);
+  digitalWrite(EPD_SCLK, LOW);
+  digitalWrite(EPD_MOSI, LOW);
+  digitalWrite(EPD_PWR, PWR_OFF); // panel OFF
+
+  Serial.println("=== Done ===");
 }
 
 void loop()

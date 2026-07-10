@@ -23,7 +23,11 @@
 #define EPD_BUSY 1   // master BUSY; NOT GPIO2 (strapping pin)
 #define EPD_SCLK 6
 #define EPD_MOSI 7
-#define EPD_PWR  4   // panel power ON/OFF (LOW = ON)
+#define EPD_PWR  4   // ON/OFF -> tag board's on-board power MOSFET
+
+// The VUSION board's MOSFET is active-low: LOW = panel powered.
+#define PWR_ON   LOW
+#define PWR_OFF  HIGH
 
 GxEPD2_3C<GxEPD2_970c_TE2969JS0B4, GxEPD2_970c_TE2969JS0B4::HEIGHT / 4> display(
   GxEPD2_970c_TE2969JS0B4(EPD_CS_M, EPD_CS_S, EPD_DC, EPD_RST, EPD_BUSY, EPD_SCLK, EPD_MOSI));
@@ -58,7 +62,7 @@ void setup()
 
   // power the panel ON (FET active-low), let the boost settle
   pinMode(EPD_PWR, OUTPUT);
-  digitalWrite(EPD_PWR, LOW);
+  digitalWrite(EPD_PWR, PWR_ON);
   delay(200);
 
   SPI.begin(EPD_SCLK, -1, EPD_MOSI, EPD_CS_M);
@@ -89,6 +93,19 @@ void setup()
     gradientStripe(30, 450, 900, 80, GxEPD_WHITE, GxEPD_RED);   // white -> red
     gradientStripe(30, 540, 900, 80, GxEPD_BLACK, GxEPD_RED);   // black -> red
   } while (display.nextPage());
+
+  Serial.println("Refresh done - powering panel off (image holds).");
+  display.powerOff();
+
+  // Park the SPI / control lines LOW so they can't back-power the unpowered panel through its ESD
+  // diodes, then cut the panel supply. The image stays on screen at zero current.
+  digitalWrite(EPD_CS_M, LOW);
+  digitalWrite(EPD_CS_S, LOW);
+  digitalWrite(EPD_DC, LOW);
+  digitalWrite(EPD_RST, LOW);
+  digitalWrite(EPD_SCLK, LOW);
+  digitalWrite(EPD_MOSI, LOW);
+  digitalWrite(EPD_PWR, PWR_OFF); // panel OFF
 
   Serial.println("=== done ===");
 }
