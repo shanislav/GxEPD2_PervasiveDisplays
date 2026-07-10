@@ -1,7 +1,7 @@
 # GxEPD2_PervasiveDisplays
 
 Add-on driver classes for **[GxEPD2](https://github.com/ZinggJM/GxEPD2)** that add support for
-**Pervasive Displays iTC "Spectra" BWR** e-paper panels — including the OEM panels found in
+**Pervasive Displays "Spectra" BWR** e-paper panels — including the OEM panels found in
 **SES-imagotag / VUSION electronic shelf labels (ESLs)** — which stock GxEPD2 does not support.
 
 This is a **companion library**: you install it *alongside* GxEPD2, you don't replace GxEPD2.
@@ -71,8 +71,10 @@ lib_deps =
 
 (The panel is write-only, so SPI MISO is unused — pass `-1` to `SPI.begin`.)
 
-The panels need **3.3 V** on both supply *and* data lines. A boost/level circuit is usually
-already on the ESL's flex-to-breakout adapter.
+The panels need **3.3 V** on both supply *and* data lines. You don't *have* to reuse the tag PCB —
+a universal e-paper breakout adapter carries the panel's boost circuitry too; the tag board just
+happens to have it (plus the power MOSFET) already on it. The exception is the 9.7" with its two
+FPCs — you're unlikely to find a universal adapter for that one, so reuse its tag board.
 
 > The **VUSION 9.7" (dual-COG)** panel has a different pinout — **two** chip-selects
 > (`M-CS`=GPIO10, `S-CS`=GPIO0) — and its own solder map. See
@@ -80,10 +82,11 @@ already on the ESL's flex-to-breakout adapter.
 
 ### Where to solder on the VUSION 2.6 board
 
-The **VUSION 2.6 (E2266JS0C)** label uses the pinout in the table above. Desolder its MCU, then wire
-these test points. Like its bigger brothers this board **has its own power MOSFET** — the `ON/OFF`
-point is its enable line, straight to a GPIO (we use GPIO4), **LOW = panel on**. `VCC 3.3V` and `GND`
-feed the ESP.
+These are the test points on the original PCB of a **VUSION 2.6 (E2266JS0C)** label — solder them to
+the ESP32-C3 GPIOs in the table above. `ON/OFF` is the enable line of the board's **own power
+MOSFET**, so wire it straight to a GPIO (we use GPIO4); no external MOSFET needed. Driving it LOW
+powers the panel, HIGH cuts it (see [Low power](#low-power-battery)). `VCC 3.3V` and `GND` go to the
+ESP's 3.3 V and GND pins.
 
 ![VUSION 2.6 test points](docs/wiring_testpoints_vusion26.jpg)
 
@@ -92,11 +95,8 @@ Board for reference — [front (MCU side)](docs/board_vusion26_front.jpg) ·
 
 ### Where to solder on the VUSION 5.9 board
 
-If you're recycling a **VUSION 5.9 (2581JSBF1)** shelf label, these are the test points on the
-original PCB (desolder its MCU first). The board **already has the power MOSFET on it**, so
-`ON/OFF` is its enable line — wire it **straight to an ESP GPIO** (we use GPIO4); no external
-MOSFET needed. Driving it LOW powers the panel, HIGH cuts it (see [Low power](#low-power-battery)).
-The rest of the test points go to the ESP32-C3 pins in the table above.
+Same idea on a **VUSION 5.9 (2581JSBF1)** label — these test points go to the ESP32-C3 GPIOs in the
+table above, and `ON/OFF` again drives the board's own power MOSFET (LOW = on, HIGH = off).
 
 ![VUSION 5.9 test points](docs/wiring_testpoints_vusion59.jpg)
 
@@ -139,6 +139,9 @@ GxEPD2_3C<GxEPD2_581c_2581JSBF1, GxEPD2_581c_2581JSBF1::HEIGHT> display(
   GxEPD2_581c_2581JSBF1(/*CS=*/10, /*DC=*/5, /*RST=*/3, /*BUSY=*/1)); // DC on 5, NOT 9 (strapping)
 
 void setup() {
+  pinMode(4, OUTPUT);
+  digitalWrite(4, LOW); // tag board's power MOSFET: LOW = panel ON
+
   SPI.begin(/*SCLK=*/6, /*MISO=*/-1, /*MOSI=*/7, /*CS=*/10); // MISO unused (write-only panel)
   display.init(115200, true, 2, false);
   display.setRotation(0);
@@ -175,8 +178,8 @@ its command protocol, not by reading the chip. Key findings (also documented in 
 
 - **Addressed as 720×512, not 720×256.** The controller RAM spans 720×512 but only the **top 256
   rows** are wired to the glass. `HEIGHT` is therefore **512**; each plane is 46080 bytes. Sending
-  only half left half the panel undriven. **Draw in Y = 0…255**; anything below is stored in RAM
-  but invisible.
+  only a 720×256 buffer leaves half of the panel undriven. **Draw in Y = 0…255**; anything below is
+  stored in RAM but invisible.
 - **Panel setting (`0x00`) = `0x0E`.** The usual 3C value `0x0F` *hangs* this controller.
 - **VCOM/data-interval (`0x50`) = `0x01, 0x07`.** `0x01` (not `0x11`) avoids inverted colours.
 - **No power-off.** Sending `0x02` (power off) cuts the DC/DC before the red pigment sets, making
@@ -208,8 +211,9 @@ the stock protocol works (unlike the 5.81"). The driver is a port of the PDLS `C
 
 > ⚠️ **Not a beginner solder job.** On this board `SCLK` has **no test point** — you have to scrape
 > the solder mask off a trace and tack a wire onto it (see the annotated photo below). The rest have
-> pads. If you just want it lit up quickly, the **stock Pervasive PDLS** library also drives it out
-> of the box — see [PDLS_EXT3_Basic_Global](https://github.com/PervasiveDisplays/PDLS_EXT3_Basic_Global),
+> pads. If you'd rather stick with the manufacturer's own driver, the **stock Pervasive PDLS**
+> library also drives this panel out of the box — see
+> [PDLS_EXT3_Basic_Global](https://github.com/PervasiveDisplays/PDLS_EXT3_Basic_Global),
 > screen `eScreen_EPD_969_JS_0B`.
 
 **Where to solder (VUSION 9.7):**
@@ -234,8 +238,9 @@ power ON  ->  init + draw + refresh  ->  power OFF  ->  deep sleep
                                           (image stays on screen at 0 mA)
 ```
 
-Cut power **after** the refresh finishes — the pigment is already set, so the image holds. The
-`HelloWorld_2581JSBF1` example does exactly this (power-gate + deep sleep). Gotcha: park the
+Cut power **after** the refresh finishes — the pigment is already set, so the image holds. All three
+examples power the panel off after the refresh; `HelloWorld_2581JSBF1` additionally deep-sleeps the
+ESP between updates. Gotcha: park the
 SPI/DC/RST lines LOW before cutting power, so they don't back-power the unpowered panel through
 its ESD diodes.
 
