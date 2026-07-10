@@ -76,9 +76,8 @@ a universal e-paper breakout adapter carries the panel's boost circuitry too; th
 happens to have it (plus the power MOSFET) already on it. The exception is the 9.7" with its two
 FPCs — you're unlikely to find a universal adapter for that one, so reuse its tag board.
 
-> The **VUSION 9.7" (dual-COG)** panel has a different pinout — **two** chip-selects
-> (`M-CS`=GPIO10, `S-CS`=GPIO0) — and its own solder map. See
-> [its section below](#te2969js0b4-vusion-97--dual-cog).
+> The **VUSION 9.7" (dual-COG)** panel replaces `CS` with **two** chip-selects — see
+> [its solder map below](#where-to-solder-on-the-vusion-97-board).
 
 ### Where to solder on the VUSION 2.6 board
 
@@ -106,6 +105,20 @@ table above, and `ON/OFF` again drives the board's own power MOSFET (LOW = on, H
 
 Board for reference — [front (MCU side)](docs/board_vusion59_front.jpg) ·
 [back (bare)](docs/board_vusion59.jpg).
+
+### Where to solder on the VUSION 9.7 board
+
+The dual-COG **VUSION 9.7 (TE2969JS0B4)** uses **two** chip-selects — `M-CS`=GPIO10, `S-CS`=GPIO0.
+The rest of the signals go to the same GPIOs as in the table above, and `ON/OFF` again drives the
+board's own power MOSFET (LOW = on).
+
+> ⚠️ **Not a beginner solder job.** On this board `SCLK` has **no test point** — you have to scrape
+> the solder mask off a trace and tack a wire onto it (see the annotated photo). The rest have pads.
+
+![VUSION 9.7 test points](docs/wiring_testpoints_vusion97.jpg)
+
+Soldered up: [wiring](docs/wiring_soldered_vusion97.jpg) · board [1](docs/board_vusion97.jpg) ·
+[2](docs/board_vusion97_2.jpg).
 
 ### ⚠️ Do NOT wire panel signals to the ESP32-C3 strapping pins
 
@@ -209,19 +222,10 @@ the stock protocol works (unlike the 5.81"). The driver is a port of the PDLS `C
 - **Memory:** the two 80 KB planes are `malloc`'d on the heap (not static), and the example uses a
   `HEIGHT/4` GFX page buffer, so it fits an ESP32-C3 (no WiFi). An ESP32-S3 is comfier.
 
-> ⚠️ **Not a beginner solder job.** On this board `SCLK` has **no test point** — you have to scrape
-> the solder mask off a trace and tack a wire onto it (see the annotated photo below). The rest have
-> pads. If you'd rather stick with the manufacturer's own driver, the **stock Pervasive PDLS**
-> library also drives this panel out of the box — see
-> [PDLS_EXT3_Basic_Global](https://github.com/PervasiveDisplays/PDLS_EXT3_Basic_Global),
-> screen `eScreen_EPD_969_JS_0B`.
-
-**Where to solder (VUSION 9.7):**
-
-![VUSION 9.7 test points](docs/wiring_testpoints_vusion97.jpg)
-
-Soldered up: [wiring](docs/wiring_soldered_vusion97.jpg) · board [1](docs/board_vusion97.jpg) ·
-[2](docs/board_vusion97_2.jpg).
+If you'd rather stick with the manufacturer's own driver, the **stock Pervasive PDLS** library also
+drives this panel out of the box — see
+[PDLS_EXT3_Basic_Global](https://github.com/PervasiveDisplays/PDLS_EXT3_Basic_Global),
+screen `eScreen_EPD_969_JS_0B`.
 
 **Origin:** SES-imagotag / VUSION 9.7 BWR GU111 (model EDG4-0970-A) recycled shelf label.
 
