@@ -22,11 +22,13 @@ so all of GxEPD2 / Adafruit_GFX drawing works exactly as usual.
 |-------|-------|------|-----|--------|-------|
 | `GxEPD2_266c_SE2266JS0C5` | **SE2266JS0C5** — VUSION 2.6 BWR GU110 (EDG3-0260-A) | 2.66" | 296×152 | BWR | genuine Pervasive iTC, "small" COG |
 | `GxEPD2_581c_SE2581JSBF1` | **SE2581JSBF1** — VUSION 5.9 BWR GU110 (EDG3-0590-A) | 5.81" | 720×256 | BWR | non-iTC, UC8179-family protocol, reverse-engineered |
+| `GxEPD2_581c_SE2581JS0G1` | **SE2581JS0G1** — VUSION 5.9 BWR GU110 (EDG3-0590-A) | 5.81" | 720×256 | BWR | genuine Pervasive iTC, MediumCJ "0B" |
 | `GxEPD2_970c_TE2969JS0B4` | **TE2969JS0B4** — VUSION 9.7 BWR GU111 (EDG4-0970-A) | 9.7" | 960×672 | BWR | genuine Pervasive iTC "0B", dual-COG (master + slave) |
 
-All three panels come from recycled **VUSION** (formerly **SES-imagotag**) electronic shelf labels.
-The 2.66" and 9.7" are genuine Pervasive iTC controllers (the stock protocol works); the 5.81" is an
-OEM variant with a non-iTC controller that had to be reverse-engineered (see notes below).
+All these panels come from recycled **VUSION** (formerly **SES-imagotag**) electronic shelf labels.
+The 2.66" and 9.7" are genuine Pervasive iTC controllers (the stock protocol works); the 5.81" comes
+in **two panel variants**: `SE2581JS0G1` is a genuine Pervasive iTC part too, while `SE2581JSBF1` is
+a non-iTC OEM variant that had to be reverse-engineered (see notes below).
 
 All are **3-colour** (black / white / red). Full refresh only (no partial update).
 
@@ -94,8 +96,9 @@ Board for reference — [front (MCU side)](docs/board_vusion26_front.jpg) ·
 
 ### Where to solder on the VUSION 5.9 board
 
-Same idea on a **VUSION 5.9 (SE2581JSBF1)** label — these test points go to the ESP32-C3 GPIOs in the
-table above, and `ON/OFF` again drives the board's own power MOSFET (LOW = on, HIGH = off).
+Same idea on a **VUSION 5.9** label (either `SE2581JSBF1` or `SE2581JS0G1` — same board) — these test
+points go to the ESP32-C3 GPIOs in the table above, and `ON/OFF` again drives the board's own power
+MOSFET (LOW = on, HIGH = off).
 
 ![VUSION 5.9 test points](docs/wiring_testpoints_vusion59.jpg)
 
@@ -172,7 +175,7 @@ void setup() {
 void loop() {}
 ```
 
-A full refresh takes ~20 s (the 9.7" ~40 s). See `examples/` for each panel.
+A full refresh takes ~20–45 s depending on the panel. See `examples/` for each panel.
 
 ---
 
@@ -207,13 +210,23 @@ run out of RAM — use paged rendering (pass a smaller page height as the `GxEPD
 argument). And since the panel addresses 720×512 but only shows the top 256 rows, if you feed it
 images from a server, generate them at **720×256** and draw into the top of the buffer.
 
+### SE2581JS0G1 (VUSION 5.9") — iTC
+
+A second, different panel found in the same VUSION 5.9 label — same glass, unrelated COG. This one
+is a genuine Pervasive iTC part: it answers the OTP read (`0xB9`) and the driver is a port of the
+PDLS `COG_MediumCJ` (DRIVER_B) path, with all init parameters read from the panel's OTP. Full
+refresh ~44 s.
+
+**Which one do I have?** Check the marking on the flex: `SE2581JS0G1` → this driver,
+`SE2581JSBF1` → the reverse-engineered one above. Same tag board, same solder map.
+
 ### TE2969JS0B4 (VUSION 9.7") — dual-COG
 
 A big one: 960×672, and **two controllers** (master + slave), each driving half the glass (the 960
 axis is split at 480). They share DC / RST / SDA / SCL and are selected by separate CS lines
 (`M-CS`, `S-CS`); the two FPCs are also joined by cascade lines (FSYNC/LNSYNC/CLK) that sync the
 halves in hardware. This is a **genuine Pervasive iTC "0B" controller** — it answers the OTP read, so
-the stock protocol works (unlike the 5.81"). The driver is a port of the PDLS `COG_LargeCJ` path:
+the stock protocol works (unlike the `SE2581JSBF1`). The driver is a port of the PDLS `COG_LargeCJ` path:
 
 - **Reads the panel OTP** (128 bytes via command `0xB9`, 3-wire SPI, master only) for the per-panel
   init parameters (DCTL, VCOM, TCON, STV_DIR, MS_SYNC/BVSS, DUW/DRFW addressing, DC/DC soft-start
@@ -232,8 +245,8 @@ screen `eScreen_EPD_969_JS_0B`.
 ### Low power (battery)
 These panels are **bistable** — once drawn they hold the image with **zero current**. The reliable
 way to get there on battery is to **cut the whole panel supply** after each refresh, because the
-COG's DC/DC otherwise keeps drawing current (and on the 5.81" the driver can't even use the soft
-power-off `0x02` — it fades the fresh image). On the VUSION tag board the power MOSFET is already
+COG's DC/DC otherwise keeps drawing current (and on the `SE2581JSBF1` the driver can't even use the
+soft power-off `0x02` — it fades the fresh image). On the VUSION tag board the power MOSFET is already
 there — just drive its `ON/OFF` line from a GPIO. On a bare panel breakout, add your own high-side
 MOSFET / load switch. Either way:
 
