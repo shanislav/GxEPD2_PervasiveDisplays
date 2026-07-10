@@ -1,5 +1,5 @@
-// HelloWorld for the Pervasive Displays E2266JS0C (2.66" BWR, 296x152), as found in the
-// SES-imagotag / VUSION 2.6 BWR GU110 shelf label. Driver: GxEPD2_266c_E2266JS0C.
+// HelloWorld for the Pervasive Displays SE2266JS0C5 (2.66" BWR, 296x152), as found in the
+// SES-imagotag / VUSION 2.6 BWR GU110 shelf label. Driver: GxEPD2_266c_SE2266JS0C5.
 // Board: ESP32-C3 Super Mini (same wiring as the 5.81 example).
 // Wiring: CS=GPIO10, DC=GPIO5, RST=GPIO3, BUSY=GPIO1, SCLK=GPIO6, MOSI=GPIO7 (MISO unused),
 //         ON/OFF (panel power) = GPIO4.  Keep panel signals OFF the strapping pins GPIO9/GPIO2 - see README.
@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <GxEPD2_3C.h>
-#include "GxEPD2_266c_E2266JS0C.h"
+#include "GxEPD2_266c_SE2266JS0C5.h"
 
 #define EPD_CS   10
 #define EPD_DC   5  // NOT GPIO9 (that is the BOOT strapping pin - see README)
@@ -27,14 +27,14 @@
 #define PWR_ON   LOW
 #define PWR_OFF  HIGH
 
-GxEPD2_3C<GxEPD2_266c_E2266JS0C, GxEPD2_266c_E2266JS0C::HEIGHT> display(
-  GxEPD2_266c_E2266JS0C(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
+GxEPD2_3C<GxEPD2_266c_SE2266JS0C5, GxEPD2_266c_SE2266JS0C5::HEIGHT> display(
+  GxEPD2_266c_SE2266JS0C5(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
 
 void setup()
 {
   Serial.begin(115200);
   delay(500);
-  Serial.println("\n=== E2266JS0C 3C HelloWorld ===");
+  Serial.println("\n=== SE2266JS0C5 3C HelloWorld ===");
 
   // power the panel on before we talk to it (150 ms for the boost to settle)
   pinMode(EPD_PWR, OUTPUT);

@@ -1,54 +1,45 @@
 // Display Library for Pervasive Displays SPI e-paper panels (iTC, film J "Spectra" BWR).
 // Requires HW SPI and Adafruit_GFX. Caution: the e-paper panels require 3.3V supply AND data lines!
 //
-// Driver for the Pervasive Displays 5.81" BWR panel used in SES-imagotag / VUSION 5.9 GU110
-// electronic shelf labels (EDG3-0590-A). The panel reports itself in OTP as "2581JSBF1".
-// Physical resolution is 720x256, 3-colour (black / white / red).
+// Driver for Pervasive Displays 2.66" BWR panel SE2266JS0C5 (SE2266JS0C5), 152x296, iTC driver "0C".
+// Command sequence based on Pervasive Displays Application Note (small C/J film panels)
+// and reference implementation in PDLS_EXT3_Basic_Global (COG_SmallCJ_* branch).
 //
-// This is an OEM panel with NO public datasheet or driver. The controller is a GD7965 / UC8179
-// (command set 0x00/0x01/0x04/0x10/0x13/0x12/0x50/0x60/0x61) - NOT the IST7236 "medium" COG of
-// the public E2581JS0B (Pervasive's EPD_Driver_GU_mid, which drives via 0x15, is a no-op here).
-// The parameters below were reverse-engineered empirically. Key findings:
-//   * HEIGHT is addressed as 512 (not 256): the GD7965 RAM spans 720x512 while only the top 256
-//     rows are wired to the glass. Each plane is 46080 bytes; sending only 23040 left half the
-//     panel undriven. Draw in Y = 0..255; anything at Y > 255 lands in RAM but is not visible.
-//   * Panel setting (0x00) = 0x0E : the usual 3C-from-OTP value 0x0F hangs this controller.
-//   * VCOM/data-interval (0x50) = 0x01,0x07 : 0x01 (not 0x11) keeps the border waveform right
-//     without setting the data-polarity bit, which would invert the colours.
-//   * powerOff() (command 0x02) is intentionally disabled: it cut the DC/DC before the heavy red
-//     pigment "baked", so the freshly drawn image faded. The panel holds its image without it.
+// Panel: https://www.pervasivedisplays.com/product/2-66-e-ink-displays/
+// Reference: https://github.com/PervasiveDisplays/PDLS_EXT3_Basic_Global
 //
-// Panel product page (public E2581 variant): https://www.pervasivedisplays.com/product/5-81-e-ink-displays/
-// See PROGRESS.md in this repo for the full reverse-engineering story.
+// Note: unlike Good Display/Waveshare controllers, this COG has no partial RAM window
+// commands - a full frame must always be sent. This driver therefore keeps its own
+// full-frame buffers (2 x 5624 bytes) and transfers them on refresh().
 //
 // Author: Shano (with Claude), in the style of GxEPD2 by Jean-Marc Zingg
 //
 // Library: https://github.com/ZinggJM/GxEPD2
 
-#ifndef _GxEPD2_581c_2581JSBF1_H_
-#define _GxEPD2_581c_2581JSBF1_H_
+#ifndef _GxEPD2_266c_SE2266JS0C5_H_
+#define _GxEPD2_266c_SE2266JS0C5_H_
 
 #include <GxEPD2_EPD.h>
 
-class GxEPD2_581c_2581JSBF1 : public GxEPD2_EPD
+class GxEPD2_266c_SE2266JS0C5 : public GxEPD2_EPD
 {
   public:
     // attributes
-    static const uint16_t WIDTH = 720;
+    static const uint16_t WIDTH = 152;
     static const uint16_t WIDTH_VISIBLE = WIDTH;
-    static const uint16_t HEIGHT = 512;
+    static const uint16_t HEIGHT = 296;
     // no dedicated enum entry for Pervasive Displays panels in GxEPD2 (yet);
-    // GDEQ0583Z31 is a similar-size 3C panel
-    static const GxEPD2::Panel panel = GxEPD2::GDEQ0583Z31;
+    // GDEY0266Z90 is the closest match (2.66" BWR, same resolution)
+    static const GxEPD2::Panel panel = GxEPD2::GDEY0266Z90;
     static const bool hasColor = true;
     static const bool hasPartialUpdate = false; // COG has no RAM window addressing
     static const bool hasFastPartialUpdate = false;
     static const uint16_t power_on_time = 100; // ms
-    static const uint16_t power_off_time = 500; // ms
-    static const uint16_t full_refresh_time = 30000; // ms, BWR Spectra full refresh
-    static const uint16_t partial_refresh_time = 30000; // ms, no partial mode
+    static const uint16_t power_off_time = 100; // ms
+    static const uint16_t full_refresh_time = 20000; // ms, BWR Spectra full refresh
+    static const uint16_t partial_refresh_time = 20000; // ms, no partial mode
     // constructor
-    GxEPD2_581c_2581JSBF1(int16_t cs, int16_t dc, int16_t rst, int16_t busy);
+    GxEPD2_266c_SE2266JS0C5(int16_t cs, int16_t dc, int16_t rst, int16_t busy);
     // methods (virtual)
     void clearScreen(uint8_t value = 0xFF); // init buffers and screen (default white)
     void clearScreen(uint8_t black_value, uint8_t color_value);
@@ -75,19 +66,22 @@ class GxEPD2_581c_2581JSBF1 : public GxEPD2_EPD
     void refresh(int16_t x, int16_t y, int16_t w, int16_t h); // maps to full refresh (no partial mode)
     void powerOff(); // turns off DC/DC of the COG
     void hibernate(); // powerOff, no deep sleep command documented for this COG
+    // set environment temperature used by the COG waveform selection (default 25 degrees C)
+    void setTemperatureC(int8_t degrees_c);
   private:
     void _writeImageToBuffer(uint8_t* buffer, const uint8_t* bitmap, int16_t x, int16_t y, int16_t w, int16_t h,
                              bool invert, bool mirror_y, bool pgm);
     void _writeImagePartToBuffer(uint8_t* buffer, const uint8_t* bitmap, int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
                                  int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm);
-    void _resetPanel();
-    void _InitDisplay();
-    void setTemperatureC(int8_t degrees_c);
+    void _InitDisplay(); // reset + soft reset + temperature + PSR
+    void _Update_Full(); // power on + display refresh + wait
+    void _PowerOff(); // DC/DC off
   private:
-    static const uint32_t BUFFER_SIZE = uint32_t(WIDTH) * uint32_t(HEIGHT) / 8; // 720*512/8 = 46080 bytes/plane
+    static const uint32_t BUFFER_SIZE = uint32_t(WIDTH) * uint32_t(HEIGHT) / 8; // 5624 bytes
+    // panel-native polarity: black frame (0x10): 1 = black; colour frame (0x13): 1 = red
     uint8_t _black_buffer[BUFFER_SIZE];
     uint8_t _red_buffer[BUFFER_SIZE];
-    int8_t _temperature_c = 25;
+    int8_t _temperature_c;
 };
 
 #endif

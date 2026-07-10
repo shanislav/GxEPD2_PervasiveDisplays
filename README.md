@@ -20,8 +20,8 @@ so all of GxEPD2 / Adafruit_GFX drawing works exactly as usual.
 
 | Class | Panel | Size | Res | Colour | Notes |
 |-------|-------|------|-----|--------|-------|
-| `GxEPD2_266c_E2266JS0C` | **E2266JS0C** — VUSION 2.6 BWR GU110 (EDG3-0260-A) | 2.66" | 296×152 | BWR | genuine Pervasive iTC, "small" COG |
-| `GxEPD2_581c_2581JSBF1` | **2581JSBF1** — VUSION 5.9 BWR GU110 (EDG3-0590-A) | 5.81" | 720×256 | BWR | non-iTC, UC8179-family protocol, reverse-engineered |
+| `GxEPD2_266c_SE2266JS0C5` | **SE2266JS0C5** — VUSION 2.6 BWR GU110 (EDG3-0260-A) | 2.66" | 296×152 | BWR | genuine Pervasive iTC, "small" COG |
+| `GxEPD2_581c_SE2581JSBF1` | **SE2581JSBF1** — VUSION 5.9 BWR GU110 (EDG3-0590-A) | 5.81" | 720×256 | BWR | non-iTC, UC8179-family protocol, reverse-engineered |
 | `GxEPD2_970c_TE2969JS0B4` | **TE2969JS0B4** — VUSION 9.7 BWR GU111 (EDG4-0970-A) | 9.7" | 960×672 | BWR | genuine Pervasive iTC "0B", dual-COG (master + slave) |
 
 All three panels come from recycled **VUSION** (formerly **SES-imagotag**) electronic shelf labels.
@@ -81,7 +81,7 @@ FPCs — you're unlikely to find a universal adapter for that one, so reuse its 
 
 ### Where to solder on the VUSION 2.6 board
 
-These are the test points on the original PCB of a **VUSION 2.6 (E2266JS0C)** label — solder them to
+These are the test points on the original PCB of a **VUSION 2.6 (SE2266JS0C5)** label — solder them to
 the ESP32-C3 GPIOs in the table above. `ON/OFF` is the enable line of the board's **own power
 MOSFET**, so wire it straight to a GPIO (we use GPIO4); no external MOSFET needed. Driving it LOW
 powers the panel, HIGH cuts it (see [Low power](#low-power-battery)). `VCC 3.3V` and `GND` go to the
@@ -94,7 +94,7 @@ Board for reference — [front (MCU side)](docs/board_vusion26_front.jpg) ·
 
 ### Where to solder on the VUSION 5.9 board
 
-Same idea on a **VUSION 5.9 (2581JSBF1)** label — these test points go to the ESP32-C3 GPIOs in the
+Same idea on a **VUSION 5.9 (SE2581JSBF1)** label — these test points go to the ESP32-C3 GPIOs in the
 table above, and `ON/OFF` again drives the board's own power MOSFET (LOW = on, HIGH = off).
 
 ![VUSION 5.9 test points](docs/wiring_testpoints_vusion59.jpg)
@@ -146,10 +146,10 @@ or just move it to a non-strapping pin.
 ```cpp
 #include <SPI.h>
 #include <GxEPD2_3C.h>
-#include "GxEPD2_581c_2581JSBF1.h"   // or GxEPD2_266c_E2266JS0C.h
+#include "GxEPD2_581c_SE2581JSBF1.h"   // or GxEPD2_266c_SE2266JS0C5.h
 
-GxEPD2_3C<GxEPD2_581c_2581JSBF1, GxEPD2_581c_2581JSBF1::HEIGHT> display(
-  GxEPD2_581c_2581JSBF1(/*CS=*/10, /*DC=*/5, /*RST=*/3, /*BUSY=*/1)); // DC on 5, NOT 9 (strapping)
+GxEPD2_3C<GxEPD2_581c_SE2581JSBF1, GxEPD2_581c_SE2581JSBF1::HEIGHT> display(
+  GxEPD2_581c_SE2581JSBF1(/*CS=*/10, /*DC=*/5, /*RST=*/3, /*BUSY=*/1)); // DC on 5, NOT 9 (strapping)
 
 void setup() {
   pinMode(4, OUTPUT);
@@ -178,11 +178,11 @@ A full refresh takes ~20 s (the 9.7" ~40 s). See `examples/` for each panel.
 
 ## Panel notes & limitations
 
-### E2266JS0C (2.66")
+### SE2266JS0C5 (2.66")
 - iTC "small C/J" COG. PSR value `{0xCF, 0x8D}` is hardcoded (not read from OTP).
 - Data as two 1bpp planes: black (`0x10`) + red (`0x13`), 5624 bytes each.
 
-### 2581JSBF1 (VUSION 5.9") — reverse-engineered
+### SE2581JSBF1 (VUSION 5.9") — reverse-engineered
 This is an **OEM panel with no public datasheet**. It shares the size of the public Pervasive
 `E2581JS0B` but uses a **different, non-iTC controller** — it doesn't answer the Pervasive OTP read
 (`0xB9`), but responds to the **UC8179-family command set**, so Pervasive's own driver does **not**
@@ -243,7 +243,7 @@ power ON  ->  init + draw + refresh  ->  power OFF  ->  deep sleep
 ```
 
 Cut power **after** the refresh finishes — the pigment is already set, so the image holds. All three
-examples power the panel off after the refresh; `HelloWorld_2581JSBF1` additionally deep-sleeps the
+examples power the panel off after the refresh; `HelloWorld_SE2581JSBF1` additionally deep-sleeps the
 ESP between updates. Gotcha: park the
 SPI/DC/RST lines LOW before cutting power, so they don't back-power the unpowered panel through
 its ESD diodes.

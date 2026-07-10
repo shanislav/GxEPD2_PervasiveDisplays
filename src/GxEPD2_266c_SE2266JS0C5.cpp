@@ -1,7 +1,7 @@
 // Display Library for Pervasive Displays SPI e-paper panels (iTC, film J "Spectra" BWR).
 // Requires HW SPI and Adafruit_GFX. Caution: the e-paper panels require 3.3V supply AND data lines!
 //
-// Driver for Pervasive Displays 2.66" BWR panel E2266JS0C (SE2266JS0C5), 152x296, iTC driver "0C".
+// Driver for Pervasive Displays 2.66" BWR panel SE2266JS0C5 (SE2266JS0C5), 152x296, iTC driver "0C".
 // Command sequence based on Pervasive Displays Application Note (small C/J film panels)
 // and reference implementation in PDLS_EXT3_Basic_Global (COG_SmallCJ_* branch).
 //
@@ -9,13 +9,13 @@
 //
 // Library: https://github.com/ZinggJM/GxEPD2
 
-#include "GxEPD2_266c_E2266JS0C.h"
+#include "GxEPD2_266c_SE2266JS0C5.h"
 
 // PSR bytes for small C/J film panels other than 3.70"/4.17"/4.37"
 // (PDLS COG_SmallCJ_getDataOTP: {0xCF, 0x8D} for all small sizes incl. 2.66")
-static const uint8_t E2266JS0C_PSR[2] = {0xCF, 0x8D};
+static const uint8_t SE2266JS0C5_PSR[2] = {0xCF, 0x8D};
 
-GxEPD2_266c_E2266JS0C::GxEPD2_266c_E2266JS0C(int16_t cs, int16_t dc, int16_t rst, int16_t busy) :
+GxEPD2_266c_SE2266JS0C5::GxEPD2_266c_SE2266JS0C5(int16_t cs, int16_t dc, int16_t rst, int16_t busy) :
   GxEPD2_EPD(cs, dc, rst, busy, LOW, 40000000, WIDTH, HEIGHT, panel, hasColor, hasPartialUpdate, hasFastPartialUpdate),
   _temperature_c(25)
 {
@@ -24,28 +24,28 @@ GxEPD2_266c_E2266JS0C::GxEPD2_266c_E2266JS0C(int16_t cs, int16_t dc, int16_t rst
   memset(_red_buffer, 0x00, BUFFER_SIZE);
 }
 
-void GxEPD2_266c_E2266JS0C::setTemperatureC(int8_t degrees_c)
+void GxEPD2_266c_SE2266JS0C5::setTemperatureC(int8_t degrees_c)
 {
   _temperature_c = degrees_c;
 }
 
-void GxEPD2_266c_E2266JS0C::clearScreen(uint8_t value)
+void GxEPD2_266c_SE2266JS0C5::clearScreen(uint8_t value)
 {
   clearScreen(value, 0xFF);
 }
 
-void GxEPD2_266c_E2266JS0C::clearScreen(uint8_t black_value, uint8_t color_value)
+void GxEPD2_266c_SE2266JS0C5::clearScreen(uint8_t black_value, uint8_t color_value)
 {
   writeScreenBuffer(black_value, color_value);
   refresh(false);
 }
 
-void GxEPD2_266c_E2266JS0C::writeScreenBuffer(uint8_t value)
+void GxEPD2_266c_SE2266JS0C5::writeScreenBuffer(uint8_t value)
 {
   writeScreenBuffer(value, 0xFF);
 }
 
-void GxEPD2_266c_E2266JS0C::writeScreenBuffer(uint8_t black_value, uint8_t color_value)
+void GxEPD2_266c_SE2266JS0C5::writeScreenBuffer(uint8_t black_value, uint8_t color_value)
 {
   _initial_write = false; // initial full screen buffer clean done
   // GxEPD2 convention: black plane 1 = white, colour plane 1 = no colour
@@ -54,12 +54,12 @@ void GxEPD2_266c_E2266JS0C::writeScreenBuffer(uint8_t black_value, uint8_t color
   memset(_red_buffer, uint8_t(~color_value), BUFFER_SIZE);
 }
 
-void GxEPD2_266c_E2266JS0C::writeImage(const uint8_t bitmap[], int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
+void GxEPD2_266c_SE2266JS0C5::writeImage(const uint8_t bitmap[], int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   writeImage(bitmap, NULL, x, y, w, h, invert, mirror_y, pgm);
 }
 
-void GxEPD2_266c_E2266JS0C::writeImage(const uint8_t* black, const uint8_t* color, int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
+void GxEPD2_266c_SE2266JS0C5::writeImage(const uint8_t* black, const uint8_t* color, int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   if (_initial_write) writeScreenBuffer(); // initial full screen buffer clean
   delay(1); // yield() to avoid WDT on ESP8266 and ESP32
@@ -67,7 +67,7 @@ void GxEPD2_266c_E2266JS0C::writeImage(const uint8_t* black, const uint8_t* colo
   _writeImageToBuffer(_red_buffer, color, x, y, w, h, invert, mirror_y, pgm);
 }
 
-void GxEPD2_266c_E2266JS0C::_writeImageToBuffer(uint8_t* buffer, const uint8_t* bitmap, int16_t x, int16_t y, int16_t w, int16_t h,
+void GxEPD2_266c_SE2266JS0C5::_writeImageToBuffer(uint8_t* buffer, const uint8_t* bitmap, int16_t x, int16_t y, int16_t w, int16_t h,
                                                 bool invert, bool mirror_y, bool pgm)
 {
   int16_t wb = (w + 7) / 8; // width bytes, bitmaps are padded
@@ -111,13 +111,13 @@ void GxEPD2_266c_E2266JS0C::_writeImageToBuffer(uint8_t* buffer, const uint8_t* 
   }
 }
 
-void GxEPD2_266c_E2266JS0C::writeImagePart(const uint8_t bitmap[], int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
+void GxEPD2_266c_SE2266JS0C5::writeImagePart(const uint8_t bitmap[], int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
                                            int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   writeImagePart(bitmap, NULL, x_part, y_part, w_bitmap, h_bitmap, x, y, w, h, invert, mirror_y, pgm);
 }
 
-void GxEPD2_266c_E2266JS0C::writeImagePart(const uint8_t* black, const uint8_t* color, int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
+void GxEPD2_266c_SE2266JS0C5::writeImagePart(const uint8_t* black, const uint8_t* color, int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
                                            int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   if (_initial_write) writeScreenBuffer(); // initial full screen buffer clean
@@ -126,7 +126,7 @@ void GxEPD2_266c_E2266JS0C::writeImagePart(const uint8_t* black, const uint8_t* 
   _writeImagePartToBuffer(_red_buffer, color, x_part, y_part, w_bitmap, h_bitmap, x, y, w, h, invert, mirror_y, pgm);
 }
 
-void GxEPD2_266c_E2266JS0C::_writeImagePartToBuffer(uint8_t* buffer, const uint8_t* bitmap, int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
+void GxEPD2_266c_SE2266JS0C5::_writeImagePartToBuffer(uint8_t* buffer, const uint8_t* bitmap, int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
                                                     int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   if ((w_bitmap < 0) || (h_bitmap < 0) || (w < 0) || (h < 0)) return;
@@ -176,45 +176,45 @@ void GxEPD2_266c_E2266JS0C::_writeImagePartToBuffer(uint8_t* buffer, const uint8
   }
 }
 
-void GxEPD2_266c_E2266JS0C::writeNative(const uint8_t* data1, const uint8_t* data2, int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
+void GxEPD2_266c_SE2266JS0C5::writeNative(const uint8_t* data1, const uint8_t* data2, int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   // native for 3C is black plane + colour plane, same as writeImage
   writeImage(data1, data2, x, y, w, h, invert, mirror_y, pgm);
 }
 
-void GxEPD2_266c_E2266JS0C::drawImage(const uint8_t bitmap[], int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
+void GxEPD2_266c_SE2266JS0C5::drawImage(const uint8_t bitmap[], int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   writeImage(bitmap, x, y, w, h, invert, mirror_y, pgm);
   refresh(false);
 }
 
-void GxEPD2_266c_E2266JS0C::drawImagePart(const uint8_t bitmap[], int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
+void GxEPD2_266c_SE2266JS0C5::drawImagePart(const uint8_t bitmap[], int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
                                           int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   writeImagePart(bitmap, x_part, y_part, w_bitmap, h_bitmap, x, y, w, h, invert, mirror_y, pgm);
   refresh(false);
 }
 
-void GxEPD2_266c_E2266JS0C::drawImage(const uint8_t* black, const uint8_t* color, int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
+void GxEPD2_266c_SE2266JS0C5::drawImage(const uint8_t* black, const uint8_t* color, int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   writeImage(black, color, x, y, w, h, invert, mirror_y, pgm);
   refresh(false);
 }
 
-void GxEPD2_266c_E2266JS0C::drawImagePart(const uint8_t* black, const uint8_t* color, int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
+void GxEPD2_266c_SE2266JS0C5::drawImagePart(const uint8_t* black, const uint8_t* color, int16_t x_part, int16_t y_part, int16_t w_bitmap, int16_t h_bitmap,
                                           int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   writeImagePart(black, color, x_part, y_part, w_bitmap, h_bitmap, x, y, w, h, invert, mirror_y, pgm);
   refresh(false);
 }
 
-void GxEPD2_266c_E2266JS0C::drawNative(const uint8_t* data1, const uint8_t* data2, int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
+void GxEPD2_266c_SE2266JS0C5::drawNative(const uint8_t* data1, const uint8_t* data2, int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
   writeNative(data1, data2, x, y, w, h, invert, mirror_y, pgm);
   refresh(false);
 }
 
-void GxEPD2_266c_E2266JS0C::refresh(bool partial_update_mode)
+void GxEPD2_266c_SE2266JS0C5::refresh(bool partial_update_mode)
 {
   // full refresh only: init COG, send both frames, update, power off
   _InitDisplay();
@@ -228,18 +228,18 @@ void GxEPD2_266c_E2266JS0C::refresh(bool partial_update_mode)
   _initial_refresh = false;
 }
 
-void GxEPD2_266c_E2266JS0C::refresh(int16_t x, int16_t y, int16_t w, int16_t h)
+void GxEPD2_266c_SE2266JS0C5::refresh(int16_t x, int16_t y, int16_t w, int16_t h)
 {
   // no partial mode on this COG, do a full refresh
   refresh(false);
 }
 
-void GxEPD2_266c_E2266JS0C::powerOff()
+void GxEPD2_266c_SE2266JS0C5::powerOff()
 {
   _PowerOff();
 }
 
-void GxEPD2_266c_E2266JS0C::hibernate()
+void GxEPD2_266c_SE2266JS0C5::hibernate()
 {
   _PowerOff();
   // no deep sleep command documented for this COG (PDLS suspend only drives GPIOs);
@@ -248,7 +248,7 @@ void GxEPD2_266c_E2266JS0C::hibernate()
   _init_display_done = false;
 }
 
-void GxEPD2_266c_E2266JS0C::_InitDisplay()
+void GxEPD2_266c_SE2266JS0C5::_InitDisplay()
 {
   // Application note par. 2. Power on COG driver
   // PDLS b_reset(5, 5, 10, 5, 5): HIGH 5ms, LOW 10ms, HIGH 5ms
@@ -270,11 +270,11 @@ void GxEPD2_266c_E2266JS0C::_InitDisplay()
   _writeCommand(0xE0); // activate temperature
   _writeData(0x02);
   _writeCommand(0x00); // PSR
-  _writeData(E2266JS0C_PSR, 2);
+  _writeData(SE2266JS0C5_PSR, 2);
   _init_display_done = true;
 }
 
-void GxEPD2_266c_E2266JS0C::_Update_Full()
+void GxEPD2_266c_SE2266JS0C5::_Update_Full()
 {
   // Application note par. 5. Send updating command
   _waitWhileBusy("_Update_Full pre", full_refresh_time);
@@ -286,7 +286,7 @@ void GxEPD2_266c_E2266JS0C::_Update_Full()
   _power_is_on = true;
 }
 
-void GxEPD2_266c_E2266JS0C::_PowerOff()
+void GxEPD2_266c_SE2266JS0C5::_PowerOff()
 {
   // Application note par. 5. Turn-off DC/DC
   _writeCommand(0x02); // DC/DC off

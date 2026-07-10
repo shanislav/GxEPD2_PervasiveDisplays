@@ -1,5 +1,5 @@
-// Example for the SES-imagotag / VUSION 5.9" BWR panel (2581JSBF1), 720x256, 3-colour,
-// on an ESP32-C3 Super Mini. Driver: GxEPD2_581c_2581JSBF1 (companion to GxEPD2).
+// Example for the SES-imagotag / VUSION 5.9" BWR panel (SE2581JSBF1), 720x256, 3-colour,
+// on an ESP32-C3 Super Mini. Driver: GxEPD2_581c_SE2581JSBF1 (companion to GxEPD2).
 //
 // This is the realistic cycle for a recycled ESL panel running on battery:
 //   power the panel ON -> draw + refresh -> power it OFF -> deep sleep, wake on a timer, repeat.
@@ -15,7 +15,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <GxEPD2_3C.h>
-#include "GxEPD2_581c_2581JSBF1.h"
+#include "GxEPD2_581c_SE2581JSBF1.h"
 
 #define EPD_CS   10
 #define EPD_DC   5  // NOT GPIO9 (that is the BOOT strapping pin - see README)
@@ -33,8 +33,8 @@
 
 #define SLEEP_MINUTES 30
 
-GxEPD2_3C<GxEPD2_581c_2581JSBF1, GxEPD2_581c_2581JSBF1::HEIGHT> display(
-  GxEPD2_581c_2581JSBF1(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
+GxEPD2_3C<GxEPD2_581c_SE2581JSBF1, GxEPD2_581c_SE2581JSBF1::HEIGHT> display(
+  GxEPD2_581c_SE2581JSBF1(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
 
 RTC_DATA_ATTR uint32_t bootCount = 0; // survives deep sleep
 
@@ -43,7 +43,7 @@ void setup()
   Serial.begin(115200);
   delay(200);
   bootCount++;
-  Serial.printf("\n=== VUSION 5.9 (2581JSBF1) - wake #%lu ===\n", bootCount);
+  Serial.printf("\n=== VUSION 5.9 (SE2581JSBF1) - wake #%lu ===\n", bootCount);
 
   // Power the panel ON right before we use it, then let the boost bring up the rails.
   pinMode(EPD_PWR, OUTPUT);
@@ -66,7 +66,7 @@ void setup()
     display.print("VUSION 5.9  -  BWR");
     display.setTextColor(GxEPD_BLACK);
     display.setCursor(30, 120);
-    display.print("Panel: 2581JSBF1  720x256");
+    display.print("Panel: SE2581JSBF1  720x256");
     display.setTextColor(GxEPD_RED);
     display.setCursor(30, 175);
     display.printf("GxEPD2 driver - wake #%lu", bootCount);
