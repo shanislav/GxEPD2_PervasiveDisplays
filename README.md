@@ -217,9 +217,6 @@ is a genuine Pervasive iTC part: it answers the OTP read (`0xB9`) and the driver
 PDLS `COG_MediumCJ` (DRIVER_B) path, with all init parameters read from the panel's OTP. Full
 refresh ~44 s.
 
-**Which one do I have?** Check the marking on the flex: `SE2581JS0G1` → this driver,
-`SE2581JSBF1` → the reverse-engineered one above. Same tag board, same solder map.
-
 ### TE2969JS0B4 (VUSION 9.7") — dual-COG
 
 A big one: 960×672, and **two controllers** (master + slave), each driving half the glass (the 960
