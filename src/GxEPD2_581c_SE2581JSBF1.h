@@ -15,8 +15,8 @@
 //   * Panel setting (0x00) = 0x0E : the usual 3C-from-OTP value 0x0F hangs this controller.
 //   * VCOM/data-interval (0x50) = 0x01,0x07 : 0x01 (not 0x11) keeps the border waveform right
 //     without setting the data-polarity bit, which would invert the colours.
-//   * powerOff() (command 0x02) is intentionally disabled: it cut the DC/DC before the heavy red
-//     pigment "baked", so the freshly drawn image faded. The panel holds its image without it.
+//   * powerOff() (command 0x02) is intentionally disabled: it fades the fresh image even after a
+//     fully completed refresh (verified on hardware). Cut the panel supply instead.
 //
 // Panel product page (public E2581 variant): https://www.pervasivedisplays.com/product/5-81-e-ink-displays/
 // See PROGRESS.md in this repo for the full reverse-engineering story.

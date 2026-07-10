@@ -195,8 +195,8 @@ its command protocol, not by reading the chip. Key findings (also documented in 
   stored in RAM but invisible.
 - **Panel setting (`0x00`) = `0x0E`.** The usual 3C value `0x0F` *hangs* this controller.
 - **VCOM/data-interval (`0x50`) = `0x01, 0x07`.** `0x01` (not `0x11`) avoids inverted colours.
-- **No power-off.** Sending `0x02` (power off) cuts the DC/DC before the red pigment sets, making
-  the fresh image fade. The driver deliberately skips it; the bistable panel holds its image.
+- **No power-off.** `0x02` (power off) fades the fresh image, even after a fully completed refresh.
+  The driver skips it — just cut the panel supply instead (see [Low power](#low-power-battery)).
 
 **Origin:** SES-imagotag / VUSION 5.9 BWR GU110 (model EDG3-0590-A) recycled shelf label. The tag's
 original MCU is a Silicon Labs EFR32FG22 (secure-locked), so the panel's original waveform/params
@@ -243,10 +243,20 @@ power ON  ->  init + draw + refresh  ->  power OFF  ->  deep sleep
 ```
 
 Cut power **after** the refresh finishes — the pigment is already set, so the image holds. All three
-examples power the panel off after the refresh; `HelloWorld_SE2581JSBF1` additionally deep-sleeps the
-ESP between updates. Gotcha: park the
-SPI/DC/RST lines LOW before cutting power, so they don't back-power the unpowered panel through
-its ESD diodes.
+examples do this. Gotcha: park the SPI/DC/RST lines LOW before cutting power, so they don't
+back-power the unpowered panel through its ESD diodes.
+
+The examples stop there and stay awake. For a battery build, add a deep sleep as the last thing in
+`setup()`:
+
+```cpp
+esp_sleep_enable_timer_wakeup(30ULL * 60ULL * 1000000ULL); // 30 min
+esp_deep_sleep_start();                                    // setup() runs again on wake
+```
+
+> On an **ESP32-C3 Super Mini** deep sleep also powers down the native USB-CDC port: the board
+> vanishes from your PC and you have to hold **BOOT** and tap **RST** to flash it again. That is why
+> the examples leave it out.
 
 ---
 

@@ -9,7 +9,9 @@ static const SPISettings _spi3_unused(4000000, MSBFIRST, SPI_MODE0);
 
 GxEPD2_970c_TE2969JS0B4::GxEPD2_970c_TE2969JS0B4(int16_t cs_master, int16_t cs_slave, int16_t dc, int16_t rst,
                                                  int16_t busy, int16_t sck, int16_t mosi) :
-  GxEPD2_EPD(cs_master, dc, rst, busy, LOW, 40000000, WIDTH, HEIGHT, panel, hasColor, hasPartialUpdate,
+  // busy_timeout is a hang guard, not the expected refresh time: a full refresh takes ~40 s, so give
+  // it 2x headroom. At 40 s _waitWhileBusy() times out mid-refresh and reports the panel as done.
+  GxEPD2_EPD(cs_master, dc, rst, busy, LOW, 90000000, WIDTH, HEIGHT, panel, hasColor, hasPartialUpdate,
              hasFastPartialUpdate),
   _otp_read_done(false), _cs_master(cs_master), _cs_slave(cs_slave), _sck_pin(sck), _mosi_pin(mosi),
   _temperature_c(25)

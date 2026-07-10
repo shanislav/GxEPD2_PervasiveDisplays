@@ -1,6 +1,6 @@
 // HelloWorld for the Pervasive Displays SE2266JS0C5 (2.66" BWR, 296x152), as found in the
 // SES-imagotag / VUSION 2.6 BWR GU110 shelf label. Driver: GxEPD2_266c_SE2266JS0C5.
-// Board: ESP32-C3 Super Mini (same wiring as the 5.81 example).
+// Board: ESP32-C3 Super Mini.
 // Wiring: CS=GPIO10, DC=GPIO5, RST=GPIO3, BUSY=GPIO1, SCLK=GPIO6, MOSI=GPIO7 (MISO unused),
 //         ON/OFF (panel power) = GPIO4.  Keep panel signals OFF the strapping pins GPIO9/GPIO2 - see README.
 //

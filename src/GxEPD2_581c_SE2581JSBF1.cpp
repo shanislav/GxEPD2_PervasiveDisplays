@@ -1,7 +1,9 @@
 #include "GxEPD2_581c_SE2581JSBF1.h"
 
 GxEPD2_581c_SE2581JSBF1::GxEPD2_581c_SE2581JSBF1(int16_t cs, int16_t dc, int16_t rst, int16_t busy) :
-  GxEPD2_EPD(cs, dc, rst, busy, LOW, 20000000, WIDTH, HEIGHT, panel, hasColor, hasPartialUpdate, hasFastPartialUpdate)
+  // busy_timeout is a hang guard, not the expected refresh time: a full refresh takes ~20 s, so give
+  // it 2x headroom. At 20 s _waitWhileBusy() times out mid-refresh and reports the panel as done.
+  GxEPD2_EPD(cs, dc, rst, busy, LOW, 40000000, WIDTH, HEIGHT, panel, hasColor, hasPartialUpdate, hasFastPartialUpdate)
 {
   memset(_black_buffer, 0x00, BUFFER_SIZE);
   memset(_red_buffer, 0x00, BUFFER_SIZE);
