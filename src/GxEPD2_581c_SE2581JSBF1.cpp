@@ -5,8 +5,10 @@ GxEPD2_581c_SE2581JSBF1::GxEPD2_581c_SE2581JSBF1(int16_t cs, int16_t dc, int16_t
   // it 2x headroom. At 20 s _waitWhileBusy() times out mid-refresh and reports the panel as done.
   GxEPD2_EPD(cs, dc, rst, busy, LOW, 40000000, WIDTH, HEIGHT, panel, hasColor, hasPartialUpdate, hasFastPartialUpdate)
 {
-  memset(_black_buffer, 0x00, BUFFER_SIZE);
-  memset(_red_buffer, 0x00, BUFFER_SIZE);
+  _black_buffer = (uint8_t*) malloc(BUFFER_SIZE);
+  _red_buffer = (uint8_t*) malloc(BUFFER_SIZE);
+  if (_black_buffer) memset(_black_buffer, 0x00, BUFFER_SIZE);
+  if (_red_buffer) memset(_red_buffer, 0x00, BUFFER_SIZE);
 }
 
 void GxEPD2_581c_SE2581JSBF1::clearScreen(uint8_t value) { clearScreen(value, 0xFF); }
@@ -22,6 +24,7 @@ void GxEPD2_581c_SE2581JSBF1::writeScreenBuffer(uint8_t value) { writeScreenBuff
 void GxEPD2_581c_SE2581JSBF1::writeScreenBuffer(uint8_t black_value, uint8_t color_value)
 {
   _initial_write = false;
+  if (!_black_buffer || !_red_buffer) return; // malloc failed - nothing we can do
   memset(_black_buffer, uint8_t(~black_value), BUFFER_SIZE);
   memset(_red_buffer, uint8_t(~color_value), BUFFER_SIZE);
 }
@@ -213,8 +216,9 @@ void GxEPD2_581c_SE2581JSBF1::_InitDisplay()
 
 void GxEPD2_581c_SE2581JSBF1::refresh(bool partial_update_mode)
 {
+  if (!_black_buffer || !_red_buffer) return; // malloc failed
   _InitDisplay();
-  
+
   _writeCommand(0x04); // Power on
   _waitWhileBusy("Power on", power_on_time);
 

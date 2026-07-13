@@ -1,29 +1,30 @@
-// Example for the SES-imagotag / VUSION 9.7" BWR panel (TE2969JS0B4), 960x672, 3-colour, DUAL-COG,
-// on an ESP32-C3 Super Mini. Driver: GxEPD2_970c_TE2969JS0B4 (companion to GxEPD2).
+// HelloWorld for the SES-imagotag / VUSION 9.7" BWR panel (TE2969JS0B4), 960x672, dual-COG,
+// on a Wemos / LOLIN S2 Mini (ESP32-S2). The 9.7" is the panel that benefits most from the S2's
+// larger RAM; the smaller panels run fine on an ESP32-C3 (see the other examples).
 //
-// This panel has TWO controllers (master + slave), each driving half the glass. They share
-// DC/RST/SDA/SCL and are picked by separate CS lines. Wiring:
-//   M-CS=GPIO10, S-CS=GPIO0, DC=GPIO5, RST=GPIO3, BUSY(master)=GPIO1, SCLK=GPIO6, MOSI=GPIO7,
-//   panel power ON/OFF = GPIO4 (drives the tag's on-board MOSFET, LOW = ON).
-// Keep panel signals off the C3 strapping pins GPIO9/GPIO2 - see the README.
+// S2 wiring (panel on the board's high-GPIO header block):
+//   M-CS=GPIO34, S-CS=GPIO33, DC=GPIO37, RST=GPIO38, BUSY(master)=GPIO39, SCLK=GPIO36, MOSI=GPIO35,
+//   panel power ON/OFF = GPIO40 (drives the tag's on-board MOSFET, LOW = ON).
+// Avoid the S2 strapping pins GPIO0 / GPIO45 / GPIO46 and the flash/PSRAM pins GPIO26-32.
 //
-// Memory: the two 80 KB frame buffers are malloc'd on the heap and the GFX page buffer is HEIGHT/4,
-// so it fits the ESP32-C3 RAM (no WiFi). The driver reads the panel's OTP (command 0xB9) for its
-// per-panel init parameters, so no waveform tables are hardcoded.
+// IMPORTANT: do NOT call SPI.begin() in this sketch. This driver reads the panel OTP by bit-banging,
+// then calls SPI.begin() itself. On the ESP32-S2, a prior SPI.begin() on the SPI pins permanently
+// breaks the bit-bang read-back (it returns 0xFF), so the init comes out garbage and the panel
+// powers up but never refreshes. See the README's ESP32-S2 section.
 
 #include <Arduino.h>
 #include <SPI.h>
 #include <GxEPD2_3C.h>
 #include "GxEPD2_970c_TE2969JS0B4.h"
 
-#define EPD_CS_M 10  // master CS
-#define EPD_CS_S 0   // slave CS
-#define EPD_DC   5   // NOT GPIO9 (BOOT strapping pin - see README)
-#define EPD_RST  3
-#define EPD_BUSY 1   // master BUSY; NOT GPIO2 (strapping pin)
-#define EPD_SCLK 6
-#define EPD_MOSI 7
-#define EPD_PWR  4   // ON/OFF -> tag board's on-board power MOSFET
+#define EPD_CS_M 34  // master CS
+#define EPD_CS_S 33  // slave CS
+#define EPD_DC   37
+#define EPD_RST  38
+#define EPD_BUSY 39  // master BUSY
+#define EPD_SCLK 36
+#define EPD_MOSI 35
+#define EPD_PWR  40  // ON/OFF -> tag board's on-board power MOSFET
 
 // The VUSION board's MOSFET is active-low: LOW = panel powered.
 #define PWR_ON   LOW
@@ -47,7 +48,7 @@ static void gradientStripe(int x0, int y0, int w, int h, uint16_t cA, uint16_t c
   {
     for (int px = x0; px < x0 + w; px++)
     {
-      int inten = ((px - x0) * 17) / w; // 0 (solid cA at far left) .. 16 (solid cB at far right)
+      int inten = ((px - x0) * 17) / w; // 0 (solid cA far left) .. 16 (solid cB far right)
       uint16_t c = (inten > bayer4[py & 3][px & 3]) ? cB : cA;
       display.drawPixel(px, py, c);
     }
@@ -58,17 +59,14 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("\n=== VUSION 9.7 (TE2969JS0B4) dual-COG 3C ===");
+  Serial.println("\n=== VUSION 9.7 (TE2969JS0B4) on Wemos S2 Mini ===");
 
   // power the panel ON (FET active-low), let the boost settle
   pinMode(EPD_PWR, OUTPUT);
   digitalWrite(EPD_PWR, PWR_ON);
   delay(200);
 
-  // Do NOT call SPI.begin() here. This driver reads the panel OTP by bit-banging SCLK/MOSI, then
-  // calls SPI.begin() itself. On the ESP32-S2 (panel on the native FSPI pins) a prior SPI.begin()
-  // permanently breaks the bit-bang read-back (it returns 0xFF), so the OTP - and the whole init -
-  // comes out as garbage. Letting the driver do it keeps the OTP read on untouched pins.
+  // NOTE: no SPI.begin() here - the driver reads OTP by bit-banging first, then inits SPI itself.
   display.init(115200, true, 2, false);
   display.setRotation(0);
 
@@ -81,7 +79,7 @@ void setup()
     display.setTextSize(4);
     display.setTextColor(GxEPD_RED);
     display.setCursor(40, 50);
-    display.print("VUSION 9.7  -  BWR");
+    display.print("VUSION 9.7 on S2 Mini");
     display.setTextColor(GxEPD_BLACK);
     display.setCursor(40, 130);
     display.print("Panel: TE2969JS0B4");

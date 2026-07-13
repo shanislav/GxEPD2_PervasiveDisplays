@@ -85,8 +85,10 @@ class GxEPD2_581c_SE2581JSBF1 : public GxEPD2_EPD
     void setTemperatureC(int8_t degrees_c);
   private:
     static const uint32_t BUFFER_SIZE = uint32_t(WIDTH) * uint32_t(HEIGHT) / 8; // 720*512/8 = 46080 bytes/plane
-    uint8_t _black_buffer[BUFFER_SIZE];
-    uint8_t _red_buffer[BUFFER_SIZE];
+    // Allocated on the heap (malloc), not as static member arrays: 2x46 KB of static BSS overflows
+    // the ESP32-S2 data RAM at link time. The 9.7"/0G1 drivers do the same.
+    uint8_t* _black_buffer;
+    uint8_t* _red_buffer;
     int8_t _temperature_c = 25;
 };
 

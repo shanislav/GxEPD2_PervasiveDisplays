@@ -218,7 +218,11 @@ void GxEPD2_970c_TE2969JS0B4::_readOTP()
   _resetPanel();
   digitalWrite(_cs_slave, HIGH); // OTP read from master only
 
-  SPI.end(); // release HW SPI to bit-bang on the same pins
+  // IMPORTANT (ESP32-S2): the sketch must NOT have called SPI.begin() before this point. On the S2,
+  // once SPI.begin() runs on the native FSPI pins, the bit-bang read-back below returns only 0xFF
+  // (SPI.end()/gpio_reset_pin() do not recover it), so the OTP - and thus the whole init - is
+  // garbage and the panel never boosts. We read the OTP here on untouched pins, then begin HW SPI.
+  SPI.end(); // harmless if SPI was never begun; releases it if a later refresh re-reads OTP
   digitalWrite(_sck_pin, LOW);
   pinMode(_sck_pin, OUTPUT);
 

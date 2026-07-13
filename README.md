@@ -142,6 +142,27 @@ Why it bites you (learned the hard way):
 If you can't flash with the panel connected, disconnect the offending signal, flash, reconnect —
 or just move it to a non-strapping pin.
 
+### On the ESP32-S2 (e.g. Wemos S2 Mini)
+
+The drivers are pin-agnostic, so any free GPIOs work — pick your own and pass them to the
+constructor. Two things differ from the C3:
+
+- **Different strapping pins.** On the S2 avoid **GPIO0 / GPIO45 / GPIO46**; the C3-specific
+  GPIO9/GPIO2 warning above does not apply. GPIO26–32 are the internal flash/PSRAM — don't use them.
+- **Do NOT call `SPI.begin()` for the OTP-reading panels** (`TE2969JS0B4`, `SE2581JS0G1`). Those
+  drivers read the panel's OTP by bit-banging, then call `SPI.begin()` themselves. On the S2, once
+  `SPI.begin()` has run on the SPI pins the bit-bang read-back only returns `0xFF`, so the OTP — and
+  the whole init — comes out garbage and the panel powers up but never draws or refreshes (the old
+  image just stays). The examples already omit `SPI.begin()`; keep it that way on the S2.
+  (`SE2266JS0C5` and `SE2581JSBF1` don't read OTP, so they keep the normal `SPI.begin()`.)
+
+The larger panels' frame buffers (~92 KB for the 5.81"/9.7") are `malloc`'d on the heap, so the
+S2's RAM handles them comfortably.
+
+There's a ready S2 sketch for the 9.7" — `examples/HelloWorld_TE2969JS0B4_S2mini` — with a worked
+S2 pinout. The small panels are happy on a C3, so they don't ship a separate S2 example; just change
+the pin `#define`s.
+
 ---
 
 ## Usage

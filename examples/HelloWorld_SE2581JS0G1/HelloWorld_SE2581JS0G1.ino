@@ -44,7 +44,10 @@ void setup()
   digitalWrite(EPD_PWR, PWR_ON);
   delay(200);
 
-  SPI.begin(EPD_SCLK, EPD_MISO, EPD_MOSI, EPD_CS);
+  // Do NOT call SPI.begin() here. This driver reads the panel OTP by bit-banging SCLK/MOSI, then
+  // calls SPI.begin() itself. On the ESP32-S2 (panel on the native FSPI pins) a prior SPI.begin()
+  // permanently breaks the bit-bang read-back (it returns 0xFF), so the OTP - and the whole init -
+  // comes out as garbage. Letting the driver do it keeps the OTP read on untouched pins.
   display.init(115200, true, 2, false);
   display.setRotation(1); // native portrait 256x720 -> 720x256 landscape, matching SE2581JSBF1
 
