@@ -74,6 +74,7 @@ class GxEPD2_970c_TE2969JS0B4 : public GxEPD2_EPD
     void setTemperatureC(int8_t degrees_c);
   private:
     // pixel-level plane write using the PDLS s_getZ / s_getB layout (transposed + master/slave split)
+    void _ensureBuffers(); // lazy PSRAM/heap alloc at setup() time (not in the global constructor)
     void _drawPixelToBuffer(uint8_t* buffer, int16_t X, int16_t Y, bool ink);
     void _writeImageToBuffer(uint8_t* buffer, const uint8_t* bitmap, int16_t x, int16_t y, int16_t w, int16_t h,
                              bool invert, bool mirror_y, bool pgm);

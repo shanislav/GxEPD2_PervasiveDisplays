@@ -4,8 +4,22 @@
 
 #include "GxEPD2_970c_TE2969JS0B4.h"
 #include <SPI.h>
+#if defined(ESP32)
+#include "esp_heap_caps.h"
+#endif
 
 static const SPISettings _spi3_unused(4000000, MSBFIRST, SPI_MODE0);
+
+// Allocate an ~80 KB plane. Prefer PSRAM (large; keeps internal RAM free for WiFi/JSON when this
+// driver runs inside a bigger firmware), fall back to internal RAM when there is no PSRAM.
+static uint8_t* alloc_plane(uint32_t n)
+{
+#if defined(ESP32)
+  uint8_t* p = (uint8_t*) heap_caps_malloc(n, MALLOC_CAP_SPIRAM);
+  if (p) return p;
+#endif
+  return (uint8_t*) malloc(n);
+}
 
 GxEPD2_970c_TE2969JS0B4::GxEPD2_970c_TE2969JS0B4(int16_t cs_master, int16_t cs_slave, int16_t dc, int16_t rst,
                                                  int16_t busy, int16_t sck, int16_t mosi) :
@@ -16,11 +30,21 @@ GxEPD2_970c_TE2969JS0B4::GxEPD2_970c_TE2969JS0B4(int16_t cs_master, int16_t cs_s
   _otp_read_done(false), _cs_master(cs_master), _cs_slave(cs_slave), _sck_pin(sck), _mosi_pin(mosi),
   _temperature_c(25)
 {
-  _black_buffer = (uint8_t*) malloc(PLANE_SIZE);
-  _red_buffer = (uint8_t*) malloc(PLANE_SIZE);
+  // Do NOT allocate here. This is typically a global object, so the constructor runs before PSRAM is
+  // initialised, and heap_caps_malloc(MALLOC_CAP_SPIRAM) would fail and fall back to internal RAM.
+  // Allocate lazily at setup() time (first use) instead - by then PSRAM is up.
+  _black_buffer = nullptr;
+  _red_buffer = nullptr;
+  memset(_cog_data, 0x00, sizeof(_cog_data));
+}
+
+void GxEPD2_970c_TE2969JS0B4::_ensureBuffers()
+{
+  if (_black_buffer && _red_buffer) return;
+  if (!_black_buffer) _black_buffer = alloc_plane(PLANE_SIZE);
+  if (!_red_buffer) _red_buffer = alloc_plane(PLANE_SIZE);
   if (_black_buffer) memset(_black_buffer, 0x00, PLANE_SIZE);
   if (_red_buffer) memset(_red_buffer, 0x00, PLANE_SIZE);
-  memset(_cog_data, 0x00, sizeof(_cog_data));
 }
 
 void GxEPD2_970c_TE2969JS0B4::setTemperatureC(int8_t degrees_c) { _temperature_c = degrees_c; }
@@ -32,6 +56,7 @@ void GxEPD2_970c_TE2969JS0B4::setTemperatureC(int8_t degrees_c) { _temperature_c
 
 void GxEPD2_970c_TE2969JS0B4::_drawPixelToBuffer(uint8_t* buffer, int16_t X, int16_t Y, bool ink)
 {
+  if (!buffer) return; // malloc failed - don't crash
   if ((X < 0) || (X >= int16_t(WIDTH)) || (Y < 0) || (Y >= int16_t(HEIGHT))) return;
   uint16_t x = uint16_t(X);
   uint32_t z = 0;
@@ -81,6 +106,7 @@ void GxEPD2_970c_TE2969JS0B4::clearScreen(uint8_t black_value, uint8_t color_val
 void GxEPD2_970c_TE2969JS0B4::writeScreenBuffer(uint8_t value) { writeScreenBuffer(value, 0xFF); }
 void GxEPD2_970c_TE2969JS0B4::writeScreenBuffer(uint8_t black_value, uint8_t color_value)
 {
+  _ensureBuffers();
   _initial_write = false;
   if (!_black_buffer || !_red_buffer) return; // malloc failed - nothing we can do
   // native polarity: 1 = ink. GxEPD2 value 0xFF = white/no-colour -> native 0x00.
@@ -94,6 +120,7 @@ void GxEPD2_970c_TE2969JS0B4::writeImage(const uint8_t bitmap[], int16_t x, int1
 }
 void GxEPD2_970c_TE2969JS0B4::writeImage(const uint8_t* black, const uint8_t* color, int16_t x, int16_t y, int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm)
 {
+  _ensureBuffers();
   if (_initial_write) writeScreenBuffer();
   delay(1);
   if (black) _writeImageToBuffer(_black_buffer, black, x, y, w, h, invert, mirror_y, pgm);
@@ -366,6 +393,8 @@ void GxEPD2_970c_TE2969JS0B4::_powerOff()
 
 void GxEPD2_970c_TE2969JS0B4::refresh(bool)
 {
+  _ensureBuffers();
+  if (!_black_buffer || !_red_buffer) return; // malloc failed
   // make sure the extra pins (slave CS, sck, mosi) are outputs
   pinMode(_cs_master, OUTPUT);
   pinMode(_cs_slave, OUTPUT);
