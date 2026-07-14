@@ -265,6 +265,16 @@ void GxEPD2_970c_TE2969JS0B4::_readOTP()
   pinMode(_mosi_pin, OUTPUT);
   SPI.begin(_sck_pin, -1, _mosi_pin, _cs_master); // restore HW SPI on our pins
 
+  // ESP32-S2: passing _cs_master as SPI's SS makes SPI.begin() route that pin (and, via IOMUX, the
+  // DC/RST control pins) into the SPI peripheral function, so the manual digitalWrite() in
+  // _sendIndexData() no longer drives CS - the panel then never sees a valid frame and never boosts
+  // (BUSY stays idle, refresh completes in a few ms with a blank screen). Force the control pins
+  // back to plain GPIO outputs after SPI.begin() so we keep manual CS/DC/RST control.
+  pinMode(_dc, OUTPUT);
+  pinMode(_rst, OUTPUT);
+  pinMode(_cs_master, OUTPUT); digitalWrite(_cs_master, HIGH);
+  pinMode(_cs_slave, OUTPUT);  digitalWrite(_cs_slave, HIGH);
+
   _otp_read_done = true;
   if (_diag_enabled)
   {
