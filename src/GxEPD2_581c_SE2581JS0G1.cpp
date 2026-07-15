@@ -245,6 +245,14 @@ void GxEPD2_581c_SE2581JS0G1::_readOTP()
   pinMode(_mosi_pin, OUTPUT);
   SPI.begin(_sck_pin, -1, _mosi_pin, _cs); // restore HW SPI on our pins
 
+  // ESP32-S2: passing _cs as SPI's SS makes SPI.begin() route that pin (and, via IOMUX, the DC/RST
+  // control pins) into the SPI peripheral function, so the manual digitalWrite() in _sendIndexData()
+  // no longer drives CS - the panel then never sees a valid frame and never boosts (blank screen).
+  // Force the control pins back to plain GPIO outputs after SPI.begin() so we keep manual control.
+  pinMode(_dc, OUTPUT);
+  pinMode(_rst, OUTPUT);
+  pinMode(_cs, OUTPUT); digitalWrite(_cs, HIGH);
+
   _otp_read_done = true;
   if (_diag_enabled)
   {
